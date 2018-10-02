@@ -1,3 +1,0 @@
-[submodule "DES"]
-	path = lib/DES
-	url = https://github.com/jordancharest/DES.git
