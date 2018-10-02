@@ -1,0 +1,3 @@
+[submodule "DES"]
+	path = DES
+	url = https://github.com/jordancharest/DES.git
