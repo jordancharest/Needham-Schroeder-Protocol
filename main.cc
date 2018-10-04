@@ -6,10 +6,12 @@
 
 
 int main(int argc, char** argv) {
-  std::cout << "Hello world\n";
+  std::string host = "127.0.0.1";
+  int port = 5000;
 
   DES::Cipher cipher;
-  
+  UDP::Server server(host, port);
+
     
 
 
