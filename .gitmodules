@@ -1,0 +1,6 @@
+[submodule "modules/DES"]
+	path = modules/DES
+	url = https://github.com/jordancharest/DES.git
+[submodule "modules/UDP-Server"]
+	path = modules/UDP-Server
+	url = https://github.com/jordancharest/UDP-Server.git
