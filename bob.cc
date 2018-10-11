@@ -54,6 +54,47 @@ uint16_t diffie_hellman(UDP::Server& server, int port, long long P, long long G)
   return static_cast<uint16_t>(session_key);
 }
 
+// ----------------------------------------------------------------------------
+void secure_messaging(UDP::Server& server, DES::Cipher& session_cipher,
+                      int port) {
+  std::string msg;
+  std::string buffer;
+  fd_set read_fd_set;
+  int sd = server.getSocketDescriptor();
+
+  while (true) {
+    struct timeval timeout;
+    timeout.tv_sec = 60;
+    timeout.tv_usec = 500;  // 60 AND 500 microseconds
+
+    // reset the fd set for UDP socket and stdin
+    FD_ZERO(&read_fd_set);
+    FD_SET(sd, &read_fd_set);
+    FD_SET(STDIN_FILENO, &read_fd_set);
+
+    // check if any file descriptors are ready to be read from
+    int ready = select(FD_SETSIZE, &read_fd_set, NULL, NULL, &timeout);
+    if (ready == 0) {
+        std::cout << "No activity\n";
+        continue;
+
+    // receive a message, print it to terminal
+    } else if (FD_ISSET(sd, &read_fd_set)) {
+      server.receive(buffer);
+      std::cout << "Received encrypted message. Decrypting...\n";
+      session_cipher.decrypt(buffer, msg);
+      std::cout << msg << std::endl;
+
+    // read stdin, send it to user 
+    } else if (FD_ISSET(STDIN_FILENO, &read_fd_set)) {
+      std::getline(std::cin, buffer);
+      // std::cout << buffer << std::endl;
+      session_cipher.encrypt(buffer, msg);
+      server.send("127.0.0.1", port, msg);
+    }
+  }
+}
+
 // ============================================================================
 int main(int argc, char** argv) {
   validate_input(argc, argv);
@@ -63,6 +104,7 @@ int main(int argc, char** argv) {
 
   // start the UDP client
   int port = 5002;
+  int port_alice = 5001;
   std::string host = "127.0.0.1";
   UDP::Server server(host, port);
 
@@ -77,32 +119,31 @@ int main(int argc, char** argv) {
   std::string buffer;
   server.receive(buffer);
   std::cout << "\nReceived encrypted message: " << buffer << "\nDecrypting...\n";
-
-  std::string decrypted = "";
-  for (char c : buffer)
-    decrypted += cipher_server.decrypt(c);
+  std::string decrypted;
+  cipher_server.decrypt(buffer, decrypted);
   std::cout << decrypted << std::endl;
 
   // enter the private key you want to use and send to server
   std::string str_private_key;
   std::cin >> str_private_key;
-  std::string encrypted = "";
-  for (char c : str_private_key)
-    encrypted += cipher_server.encrypt(c);
-
+  std::string encrypted;
+  cipher_server.encrypt(str_private_key, encrypted);
   server.send("127.0.0.1", server_port, encrypted);
-
   uint16_t private_key = std::stoi(str_private_key, nullptr, 16);
 
   // wait for the Alice to forward the session key from the server
   DES::Cipher private_cipher(private_key);
   server.receive(buffer);
-  decrypted = "";
-  for (char c : buffer)
-    decrypted += private_cipher.decrypt(c);
+  private_cipher.decrypt(buffer, decrypted);
 
-  std::cout << "Received " << decrypted << std::endl;
-  uint16_t session_key_alice = std::stoi(decrypted, nullptr, 16);
+  uint16_t session_key_alice = std::stoi(decrypted);
+  std::cout << "Session key with Alice: " << session_key_alice << std::endl;
+  DES::Cipher cipher_session_alice(session_key_alice);
+
+  // run the secure messaging server
+  secure_messaging(server, cipher_session_alice, port_alice);
+
+
 
 
 

@@ -85,17 +85,19 @@ uint16_t prompt_user_and_receive_key(UDP::Server& server, DES::Cipher& cipher,
                                       std::string& msg, int client_port, 
                                       std::string& name) {
 
-  std::string encrypted = "";
-  for (char c : msg)
-    encrypted += cipher.encrypt(c);
+  std::string encrypted;
+  cipher.encrypt(msg, encrypted);
+  // for (char c : msg)
+  //   encrypted += cipher.encrypt(c);
   server.send("127.0.0.1", client_port, encrypted);
 
   // receive user's (encrypted) private key
   std::string buffer;
   server.receive(buffer);
-  std::string decrypted = "";
-  for (char c : buffer)
-    decrypted += cipher.decrypt(c);
+  std::string decrypted;
+  cipher.decrypt(buffer, decrypted);
+  // for (char c : buffer)
+  //   decrypted += cipher.decrypt(c);
 
   std::cout << "Received private key from " << name << std::endl;
   uint16_t private_key = std::stoi(decrypted, nullptr, 16);
@@ -111,17 +113,19 @@ void initialize_needham_schroeder(UDP::Server& server, uint16_t client_session_k
   
   // send the session key to Alice, encrypted with her private key
   DES::Cipher cipher_alice(private_key_alice);
-  std::string encrypted = "";
-  for (char c : key_string)
-    encrypted += cipher_alice.encrypt(c);
+  std::string encrypted;
+  cipher_alice.encrypt(key_string, encrypted);
+  // for (char c : key_string)
+  //   encrypted += cipher_alice.encrypt(c);
 
   server.send("127.0.0.1", port_alice, encrypted);
 
   // send another session key to Alice, encrypted with Bob's private key
   DES::Cipher cipher_bob(private_key_bob);
-  encrypted = "";
-  for (char c : key_string)
-    encrypted += cipher_bob.encrypt(c);
+  cipher_bob.encrypt(key_string, encrypted);
+  // encrypted = "";
+  // for (char c : key_string)
+  //   encrypted += cipher_bob.encrypt(c);
 
   server.send("127.0.0.1", port_alice, encrypted);
 
