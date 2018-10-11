@@ -6,9 +6,8 @@
 #include "des_cipher.h"
 #include "udp_server.h"
 
-long long private_key = 3;
+long long dh_private_key = 3;
 std::string name = "Alice";
-
 
 // ----------------------------------------------------------------------------
 void read_public_info(char** argv, long long* P, long long* G) {
@@ -37,7 +36,7 @@ inline void validate_input(int argc, char** argv) {
 // ----------------------------------------------------------------------------
 uint16_t diffie_hellman(UDP::Server& server, int port, long long P, long long G) {
   // generate key and send to server
-  long long generated_key = (long long)pow(G, private_key) % P;
+  long long generated_key = (long long)pow(G, dh_private_key) % P;
   server.send("127.0.0.1", port, std::to_string(generated_key));
 
   // wait to receive a message from user
@@ -46,7 +45,7 @@ uint16_t diffie_hellman(UDP::Server& server, int port, long long P, long long G)
   long long received_key = (long long)stoi(buffer);
 
   // compute session key
-  long long session_key = (long long)pow(received_key, private_key) % P;
+  long long session_key = (long long)pow(received_key, dh_private_key) % P;
 
   // strip off all but ten least significant bits
   session_key &= 0x3FF;
@@ -65,6 +64,7 @@ int main(int argc, char** argv) {
 
   // start the UDP client
   int port = 5001;
+  int port_bob = 5002;
   std::string host = "127.0.0.1";
   UDP::Server server(host, port);
 
@@ -85,15 +85,30 @@ int main(int argc, char** argv) {
   std::cout << decrypted << std::endl;
 
   // enter the private key you want to use and send to server
-  std::string str_session_key_bob;
-  std::cin >> str_session_key_bob;
+  std::string str_private_key;
+  std::cin >> str_private_key;
   std::string encrypted = "";
-  for (char c : str_session_key_bob)
+  for (char c : str_private_key)
     encrypted += cipher_server.encrypt(c);
 
   server.send("127.0.0.1", server_port, encrypted);
 
-  uint16_t session_key_bob = std::stoi(str_session_key_bob, nullptr, 16);
+  uint16_t private_key = std::stoi(str_private_key, nullptr, 16);
+
+  // wait for the server to respond with the session key
+  DES::Cipher private_cipher(private_key);
+  server.receive(buffer);
+  decrypted = "";
+  for (char c : buffer)
+    decrypted += private_cipher.decrypt(c);
+
+  std::cout << "Received " << decrypted << std::endl;
+  uint16_t session_key_bob = std::stoi(decrypted, nullptr, 16);
+
+  // receive the session key again but encrypted with Bob's private key,
+  // forward it to Bob
+  server.receive(buffer);
+  server.send("127.0.0.1", port_bob, buffer);
 
 
 

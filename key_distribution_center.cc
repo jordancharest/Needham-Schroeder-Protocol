@@ -73,7 +73,8 @@ uint16_t secure_connection(UDP::Server& server, std::string& name,
                             int client_port, long long P, long long G) {
   std::cout << "\nWaiting to receive a connection request from " << name << "\n";
   uint16_t session_key = diffie_hellman(server, client_port, P, G);
-  std::cout << "KDC: The session key with " << name << " is " << session_key << std::endl;
+  std::cout << "KDC: The session key with " << name
+            << " is " << session_key << std::endl;
 
   return session_key;
 }
@@ -101,6 +102,32 @@ uint16_t prompt_user_and_receive_key(UDP::Server& server, DES::Cipher& cipher,
   return private_key;
 }
 
+// ----------------------------------------------------------------------------
+void initialize_needham_schroeder(UDP::Server& server, uint16_t client_session_key, 
+                                  uint16_t private_key_alice, int port_alice,
+                                  uint16_t private_key_bob) {
+
+  std::string key_string = std::to_string(client_session_key);
+  
+  // send the session key to Alice, encrypted with her private key
+  DES::Cipher cipher_alice(private_key_alice);
+  std::string encrypted = "";
+  for (char c : key_string)
+    encrypted += cipher_alice.encrypt(c);
+
+  server.send("127.0.0.1", port_alice, encrypted);
+
+  // send another session key to Alice, encrypted with Bob's private key
+  DES::Cipher cipher_bob(private_key_bob);
+  encrypted = "";
+  for (char c : key_string)
+    encrypted += cipher_bob.encrypt(c);
+
+  server.send("127.0.0.1", port_alice, encrypted);
+
+  // send a nonce ?
+}
+
 
 
 // ============================================================================
@@ -120,13 +147,15 @@ int main(int argc, char** argv) {
 
   // establish a secure connection with Alice
   std::string name = "Alice";
-  uint16_t session_key_alice = secure_connection(server, name, port_alice, P_alice, G_alice);
+  uint16_t session_key_alice = secure_connection(server, name, port_alice,
+                                                  P_alice, G_alice);
   
   // prompt Alice to send the key for her communication with Bob
   DES::Cipher cipher_alice(session_key_alice);
-  std::string msg = "Hello Alice, please input the 10-bit key you wish to use in your"
-                    " communication with Bob (3-digit hex):";
-  uint16_t alice_private_key = prompt_user_and_receive_key(server, cipher_alice, msg, port_alice, name);
+  std::string msg = "Hello Alice, please input the 10-bit key you wish to use"
+                    " in your communication with Bob (3-digit hex):";
+  uint16_t private_key_alice = prompt_user_and_receive_key(server, cipher_alice,
+                                                            msg, port_alice, name);
 
   // establish a secure connection with Bob
   name = "Bob";
@@ -136,10 +165,20 @@ int main(int argc, char** argv) {
   DES::Cipher cipher_bob(session_key_bob);
   msg = "Hello Bob, Alice wishes to communicate. Please input the 10-bit key"
         " you wish to use (3-digit hex):";
-  uint16_t bob_private_key = prompt_user_and_receive_key(server, cipher_bob, msg, port_bob, name);
+  uint16_t private_key_bob = prompt_user_and_receive_key(server, cipher_bob, 
+                                                          msg, port_bob, name);
 
   // --------- DIFFIE-HELLMAN COMPLETE; BEGIN NEEDHAM SCHROEDER --------- //
+  std::cout << "\nInitializing the Needham-Schroeder Protocol\n";
 
+  // generate a "random" session key for alice and bob
+  uint16_t client_session_key = session_key_bob ^ session_key_alice;
+  std::cout << "Session key for Alice and Bob: " << client_session_key << "\n";
+
+  // once the server initializes the Needham-Schroeder Protocol, it is no longer needed
+  initialize_needham_schroeder(server, client_session_key, private_key_alice, 
+                                port_alice, private_key_bob);
+  std::cout << "Alice and Bob can now securely communicate. Shutting down.\n";
 
   return EXIT_SUCCESS;
 }
