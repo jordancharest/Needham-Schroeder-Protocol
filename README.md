@@ -34,3 +34,43 @@ Contained in the text file command line arguments are Alice and Bob's public inf
 ```bash
 ./build/alice alice.txt
 ```
+The Alice program will read her public info from `alice.txt`, generate a value (more on this later) and immediately send it to the server. The server will then send Alice its own generated value, and they will both compute the (identical) private key. A key between Alice and the server has now been securely exchanged. Since the goal is to communicate with Bob, the server will then prompt Alice to send over the private key that she wishes to use in her communication with Bob. This traffic is of course encrypted using the private key that the server and Alice had previously exchanged. Type a 3-digit hex value in the terminal and press enter to send a response:
+```
+Received encrypted message: 濏ҏ]񿻷]*NI%*񿻷컀e췱컰*%a
+*g
+Decrypting...
+Hello Alice, please input the 10-bit key you wish to use in your communication with Bob (3-digit hex):
+123
+```
+
+Now that the server has the private key Alice wishes to use. It will wait to receive a connection request from Bob. At this point, run the Bob program:
+```bash
+./build/bob bob.txt
+```
+
+This will follow the same Computational Diffie-Hellman Key Exchange Protocol that Alice completed previously. After generating the private key, the server will prompt Bob to send his key over the (now encrypted) communication channel. Type a 3-digit hex value in the terminal and press enter to send a response: 
+
+```bash
+Received encrypted message: :I
+IQc
+GA
+
+I
+AIggNAK
+K
+N
+
+                                                                     
+IN
+
+I
+N
+7_
+L
+Decrypting...
+Hello Bob, Alice wishes to communicate. Please input the 10-bit key you wish to use (3-digit hex):
+432
+
+```
+
+AFter receiving the private key from Bob, the server will generate two copies of a session key for Alice and Bob, one encrypted with Alice's private key, and one encrypted with Bob's private key, and send them both to Alice. Alice decrypts her copy of the session key and forwards Bob's copy to him. At this point, Alice and Bob both have the session key, and a secure chat session is started. Type whatever you want in either Alice or Bob's terminal and see the other receive the encrypted message and decrypt it!
