@@ -73,4 +73,6 @@ Hello Bob, Alice wishes to communicate. Please input the 10-bit key you wish to 
 
 ```
 
-AFter receiving the private key from Bob, the server will generate two copies of a session key for Alice and Bob, one encrypted with Alice's private key, and one encrypted with Bob's private key, and send them both to Alice. Alice decrypts her copy of the session key and forwards Bob's copy to him. At this point, Alice and Bob both have the session key, and a secure chat session is started. Type whatever you want in either Alice or Bob's terminal and see the other receive the encrypted message and decrypt it!
+After receiving the private key from Bob, the server will generate two copies of a session key for Alice and Bob, one encrypted with Alice's private key, and one encrypted with Bob's private key, and send them both to Alice. Alice decrypts her copy of the session key and forwards Bob's copy to him. At this point, Alice and Bob both have the session key, and a secure chat session is started. Type whatever you want in either Alice or Bob's terminal and see the other receive the encrypted message and decrypt it!
+
+## Computational Diffie-Hellman   
