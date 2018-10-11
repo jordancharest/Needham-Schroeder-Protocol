@@ -20,8 +20,9 @@ void read_public_info(char** argv, long long* P, long long* G) {
   }
 
   in >> *P >> *G;
-  std::cout << "My (" << name << ") public info:\nP: " 
-            << *P << "\nG: " << *G << std::endl;
+  std::cout << "Generating a session key with my (" << name 
+            << ") public info:\nP: " << *P << "\nG: " << *G 
+            << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -51,7 +52,6 @@ uint16_t diffie_hellman(UDP::Server& server, int port, long long P, long long G)
   session_key &= 0x3FF;
   session_key ^= 0x3FF;
 
-
   return static_cast<uint16_t>(session_key);
 }
 
@@ -73,28 +73,23 @@ int main(int argc, char** argv) {
   uint16_t session_key_server = diffie_hellman(server, server_port, P, G);
   DES::Cipher cipher_server(session_key_server);
 
-  std::cout << "The session key with the server is " << session_key_server << std::endl;
+  std::cout << "\nThe session key with the server is " << session_key_server << std::endl;
 
   // wait for prompt from the server
   std::string buffer;
   server.receive(buffer);
-  std::cout << "Received encrypted message: " << buffer << "\nDecrypting...\n";
+  std::cout << "\nReceived encrypted message: " << buffer << "\nDecrypting...\n";
   std::string decrypted = "";
   for (char c : buffer)
     decrypted += cipher_server.decrypt(c);
   std::cout << decrypted << std::endl;
 
+  // enter the private key you want to use and send to server
   std::string str_session_key_bob;
   std::cin >> str_session_key_bob;
-  std::cout << "You chose: " << str_session_key_bob << "    Size: " << str_session_key_bob.size() <<"\n";
   std::string encrypted = "";
-  for (char c : str_session_key_bob) {
-    char temp = cipher_server.encrypt(c);
-    encrypted += temp;
-    std::cout << "Char: " << c << "  E: " << temp << "\n";
-
-  }
-  std::cout << "Encrypted: " << encrypted << "    Size: " << encrypted.size() << "\n";
+  for (char c : str_session_key_bob)
+    encrypted += cipher_server.encrypt(c);
 
   server.send("127.0.0.1", server_port, encrypted);
 
