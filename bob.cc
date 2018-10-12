@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -8,6 +9,8 @@
 
 long long dh_private_key = 3;
 std::string name = "Bob";
+
+int TTL = 100;
 
 // ----------------------------------------------------------------------------
 void read_public_info(char** argv, long long* P, long long* G) {
@@ -26,7 +29,9 @@ void read_public_info(char** argv, long long* P, long long* G) {
 
 // ----------------------------------------------------------------------------
 inline void validate_input(int argc, char** argv) {
-  if (argc != 2) {
+  if (argc == 3) {
+    TTL = std::stoi(argv[2]);
+  } else if (argc != 2) {
     std::cerr << "Invalid Argument(s).\n";
     std::cerr << "USAGE: " << argv[0] << " <keys-file>\n";
     std::exit(EXIT_FAILURE);
@@ -88,7 +93,6 @@ void secure_messaging(UDP::Server& server, DES::Cipher& session_cipher,
     // read stdin, send it to user 
     } else if (FD_ISSET(STDIN_FILENO, &read_fd_set)) {
       std::getline(std::cin, buffer);
-      // std::cout << buffer << std::endl;
       session_cipher.encrypt(buffer, msg);
       server.send("127.0.0.1", port, msg);
     }
@@ -136,22 +140,28 @@ int main(int argc, char** argv) {
   server.receive(buffer);
   private_cipher.decrypt(buffer, decrypted);
 
+  // receive the timestamp and verify that the key is fresh
+  server.receive(buffer);
+  std::string str_timestamp;
+  private_cipher.decrypt(buffer, str_timestamp);
+
+  // check for a replay attack
+  using namespace std::chrono;
+  milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+  unsigned long long timestamp = ms.count();
+  unsigned long long server_ts = std::stoull(str_timestamp);
+
+  if (timestamp - server_ts > TTL) {
+    std::cout << "REPLAY ATTACK DETECTED!\nClosing connection.\n";
+    std::exit(EXIT_SUCCESS);
+  }
+
   uint16_t session_key_alice = std::stoi(decrypted);
   std::cout << "Session key with Alice: " << session_key_alice << std::endl;
   DES::Cipher cipher_session_alice(session_key_alice);
 
   // run the secure messaging server
   secure_messaging(server, cipher_session_alice, port_alice);
-
-
-
-
-
-
-    
-
-
-
 
   return EXIT_SUCCESS;
 }

@@ -88,7 +88,6 @@ void secure_messaging(UDP::Server& server, DES::Cipher& session_cipher,
     // read stdin, encrypt and send it to user 
     } else if (FD_ISSET(STDIN_FILENO, &read_fd_set)) {
       std::getline(std::cin, buffer);
-      // std::cout << buffer << std::endl;
       session_cipher.encrypt(buffer, msg);
       server.send("127.0.0.1", port, msg);
     }
@@ -121,8 +120,6 @@ int main(int argc, char** argv) {
   std::cout << "\nReceived encrypted message: " << buffer << "\nDecrypting...\n";
   std::string decrypted;
   cipher_server.decrypt(buffer, decrypted);
-  // for (char c : buffer)
-  //   decrypted += cipher_server.decrypt(c);
   std::cout << decrypted << std::endl;
 
   // enter the private key you want to use and send to server
@@ -145,6 +142,10 @@ int main(int argc, char** argv) {
 
   // receive the session key again but encrypted with Bob's private key,
   // forward it to Bob
+  server.receive(buffer);
+  server.send("127.0.0.1", port_bob, buffer);
+
+  // receive the timestamp and forward it to Bob
   server.receive(buffer);
   server.send("127.0.0.1", port_bob, buffer);
 

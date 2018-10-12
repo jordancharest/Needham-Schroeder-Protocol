@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -115,21 +116,23 @@ void initialize_needham_schroeder(UDP::Server& server, uint16_t client_session_k
   DES::Cipher cipher_alice(private_key_alice);
   std::string encrypted;
   cipher_alice.encrypt(key_string, encrypted);
-  // for (char c : key_string)
-  //   encrypted += cipher_alice.encrypt(c);
 
   server.send("127.0.0.1", port_alice, encrypted);
 
   // send another session key to Alice, encrypted with Bob's private key
   DES::Cipher cipher_bob(private_key_bob);
   cipher_bob.encrypt(key_string, encrypted);
-  // encrypted = "";
-  // for (char c : key_string)
-  //   encrypted += cipher_bob.encrypt(c);
 
+  // send Bob's key and a timestamp
+  using namespace std::chrono;
+  milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+  unsigned long long timestamp = ms.count();
+  std::string str_timestamp;
+  cipher_bob.encrypt(std::to_string(timestamp), str_timestamp);
+
+  std::cout << "Timestamp: " << timestamp << std::endl;
   server.send("127.0.0.1", port_alice, encrypted);
-
-  // send a nonce ?
+  server.send("127.0.0.1", port_alice, str_timestamp);
 }
 
 
