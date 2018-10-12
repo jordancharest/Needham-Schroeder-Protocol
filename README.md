@@ -45,10 +45,10 @@ Hello Alice, please input the 10-bit key you wish to use in your communication w
 
 Now that the server has the private key Alice wishes to use. It will wait to receive a connection request from Bob. At this point, run the Bob program:
 ```bash
-./build/bob bob.txt
+./build/bob bob.txt [<time-to-live>]
 ```
-
-This will follow the same Computational Diffie-Hellman Key Exchange Protocol that Alice completed previously. After generating the private key, the server will prompt Bob to send his key over the (now encrypted) communication channel. Type a 3-digit hex value in the terminal and press enter to send a response: 
+The optional third parameter (time to live) is the time in milliseconds that Bob allows to pass between his current timestamp and the timestamp he receives from Alice (from the KDC) before he declares that a replay attack has occurred. By default, it is 100 milliseconds. Testing on my computer shows the typical difference is about 2 milliseconds. A simple way to check if the replay protection is working is to set this to a negative number.
+This program will follow the same Computational Diffie-Hellman Key Exchange Protocol that Alice completed previously. After generating the private key, the server will prompt Bob to send his key over the (now encrypted) communication channel. Type a 3-digit hex value in the terminal and press enter to send a response: 
 
 ```bash
 Received encrypted message: :I
