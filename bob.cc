@@ -30,7 +30,9 @@ void read_public_info(char** argv, long long* P, long long* G) {
 // ----------------------------------------------------------------------------
 inline void validate_input(int argc, char** argv) {
   if (argc == 3) {
+    std::cout << argv[2] << "\n";
     TTL = std::stoi(argv[2]);
+    std::cout << TTL << "\n";
   } else if (argc != 2) {
     std::cerr << "Invalid Argument(s).\n";
     std::cerr << "USAGE: " << argv[0] << " <keys-file>\n";
@@ -151,11 +153,12 @@ int main(int argc, char** argv) {
   unsigned long long timestamp = ms.count();
   unsigned long long server_ts = std::stoull(str_timestamp);
 
-  if (timestamp - server_ts > TTL) {
-    std::cout << "REPLAY ATTACK DETECTED!\nClosing connection.\n";
+  int diff = timestamp - server_ts;
+  if (diff > TTL) {
+    std::cerr << "REPLAY ATTACK DETECTED!\nClosing connection.\n";
     std::exit(EXIT_SUCCESS);
   }
-
+  
   uint16_t session_key_alice = std::stoi(decrypted);
   std::cout << "Session key with Alice: " << session_key_alice << std::endl;
   DES::Cipher cipher_session_alice(session_key_alice);
